@@ -1,0 +1,503 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>핵심 문제 선정 대시보드</title>
+
+<style>
+body{
+    font-family:'Malgun Gothic',sans-serif;
+    background:#f3f4f6;
+    margin:0;
+    padding:20px;
+}
+
+.container{
+    max-width:1200px;
+    margin:auto;
+}
+
+.card{
+    background:white;
+    border-radius:10px;
+    padding:20px;
+    margin-bottom:20px;
+    box-shadow:0 2px 8px rgba(0,0,0,.08);
+}
+
+h1{
+    margin-top:0;
+}
+
+input, textarea{
+    width:100%;
+    padding:8px;
+    box-sizing:border-box;
+}
+
+textarea{
+    height:60px;
+}
+
+button{
+    border:none;
+    border-radius:6px;
+    padding:8px 12px;
+    cursor:pointer;
+    color:white;
+}
+
+.addBtn{
+    background:#2563eb;
+}
+
+.deleteBtn{
+    background:#dc2626;
+}
+
+.saveBtn{
+    background:#059669;
+}
+
+table{
+    width:100%;
+    border-collapse:collapse;
+}
+
+th, td{
+    border:1px solid #ddd;
+    padding:8px;
+}
+
+svg{
+    width:100%;
+    height:500px;
+    border:1px solid #ccc;
+    background:white;
+}
+
+#recommend{
+    color:#059669;
+    font-size:22px;
+    font-weight:bold;
+}
+</style>
+
+</head>
+<body>
+
+<div class="container">
+
+<h1>🎯 핵심 문제 선정 대시보드</h1>
+
+<div class="card">
+
+<h2>학생 정보</h2>
+
+<label>이름</label>
+<input id="studentName">
+
+<br><br>
+
+<label>모둠</label>
+<input id="teamName">
+
+</div>
+
+<div class="card">
+
+<h2>문제 추가</h2>
+
+<input id="problemInput" placeholder="예: 도시공원 감소">
+
+<br><br>
+
+<button class="addBtn" onclick="addProblem()">
+문제 추가
+</button>
+
+</div>
+
+<div class="card">
+
+<h2>문제 평가</h2>
+
+<table>
+
+<thead>
+<tr>
+<th>문제</th>
+<th>파급력(1~10)</th>
+<th>실현가능성(1~10)</th>
+<th>평가 이유</th>
+<th>삭제</th>
+</tr>
+</thead>
+
+<tbody id="problemTable">
+
+<tr>
+<td colspan="5">
+문제를 추가해주세요.
+</td>
+</tr>
+
+</tbody>
+
+</table>
+
+</div>
+
+<div class="card">
+
+<h2>🏆 추천 핵심 문제</h2>
+
+<div id="recommend">
+
+문제를 입력하세요.
+
+</div>
+
+</div>
+
+<div class="card">
+
+<h2>📊 버블 그래프</h2>
+
+<svg id="chart" viewBox="0 0 800 500"></svg>
+
+</div>
+
+<div class="card">
+
+<button class="saveBtn" onclick="downloadCSV()">
+CSV 저장
+</button>
+
+</div>
+
+</div>
+
+<script>
+
+let problems = [];
+
+function addProblem(){
+
+const name =
+document.getElementById("problemInput")
+.value.trim();
+
+if(name===""){
+alert("문제를 입력하세요.");
+return;
+}
+
+problems.push({
+name:name,
+impact:5,
+feasibility:5,
+reason:""
+});
+
+document.getElementById("problemInput").value="";
+
+renderTable();
+drawChart();
+updateRecommend();
+}
+
+function deleteProblem(index){
+
+problems.splice(index,1);
+
+renderTable();
+drawChart();
+updateRecommend();
+}
+
+function renderTable(){
+
+const table =
+document.getElementById("problemTable");
+
+if(problems.length===0){
+
+table.innerHTML=`
+<tr>
+<td colspan="5">
+문제를 추가해주세요.
+</td>
+</tr>
+`;
+
+return;
+}
+
+table.innerHTML="";
+
+problems.forEach((p,index)=>{
+
+table.innerHTML += `
+<tr>
+
+<td>
+
+<input
+value="${p.name}"
+oninput="
+problems[${index}].name=this.value;
+drawChart();
+updateRecommend();
+">
+
+</td>
+
+<td>
+
+<input
+type="number"
+min="1"
+max="10"
+value="${p.impact}"
+oninput="
+problems[${index}].impact=parseInt(this.value)||1;
+drawChart();
+updateRecommend();
+">
+
+</td>
+
+<td>
+
+<input
+type="number"
+min="1"
+max="10"
+value="${p.feasibility}"
+oninput="
+problems[${index}].feasibility=parseInt(this.value)||1;
+drawChart();
+updateRecommend();
+">
+
+</td>
+
+<td>
+
+<textarea
+oninput="
+problems[${index}].reason=this.value;
+"
+>${p.reason}</textarea>
+
+</td>
+
+<td>
+
+<button
+class="deleteBtn"
+onclick="deleteProblem(${index})">
+
+삭제
+
+</button>
+
+</td>
+
+</tr>
+`;
+
+});
+
+}
+
+function updateRecommend(){
+
+if(problems.length===0){
+
+document.getElementById("recommend")
+.innerHTML="문제를 입력하세요.";
+
+return;
+}
+
+let best = problems[0];
+
+for(let i=1;i<problems.length;i++){
+
+let current =
+problems[i].impact +
+problems[i].feasibility;
+
+let bestScore =
+best.impact +
+best.feasibility;
+
+if(current > bestScore){
+best = problems[i];
+}
+
+}
+
+document.getElementById("recommend")
+.innerHTML =
+
+best.name +
+"<br>총점 : " +
+(best.impact + best.feasibility);
+
+}
+
+function drawChart(){
+
+const svg =
+document.getElementById("chart");
+
+svg.innerHTML="";
+
+svg.innerHTML += `
+<line x1="80" y1="420" x2="730" y2="420" stroke="black"/>
+<line x1="80" y1="420" x2="80" y2="50" stroke="black"/>
+
+<text x="350" y="470">
+실현가능성
+</text>
+
+<text transform="rotate(-90)"
+x="-280"
+y="25">
+파급력
+</text>
+`;
+
+for(let i=1;i<=10;i++){
+
+svg.innerHTML += `
+<text x="${80+i*60}" y="440">${i}</text>
+`;
+
+}
+
+for(let i=1;i<=10;i++){
+
+svg.innerHTML += `
+<text x="50" y="${420-i*35}">
+${i}
+</text>
+`;
+
+}
+
+problems.forEach(function(p){
+
+let x = 80 + p.feasibility*60;
+let y = 420 - p.impact*35;
+let r = 10 + (p.impact + p.feasibility);
+
+svg.innerHTML += `
+
+<circle
+cx="${x}"
+cy="${y}"
+r="${r}"
+fill="#3b82f6"
+fill-opacity="0.7"/>
+
+<text
+x="${x}"
+y="${y-r-8}"
+text-anchor="middle"
+font-size="12">
+
+${p.name}
+
+</text>
+
+`;
+
+});
+
+}
+
+function downloadCSV(){
+
+let csv =
+"이름,모둠,문제,파급력,실현가능성,평가이유\n";
+
+const name =
+document.getElementById("studentName").value;
+
+const team =
+document.getElementById("teamName").value;
+
+problems.forEach(function(p){
+
+csv +=
+`"${name}","${team}","${p.name}","${p.impact}","${p.feasibility}","${p.reason}"\n`;
+
+});
+
+const blob =
+new Blob(
+["\ufeff"+csv],
+{type:"text/csv"}
+);
+
+const link =
+document.createElement("a");
+
+link.href =
+URL.createObjectURL(blob);
+
+link.download =
+"핵심문제평가.csv";
+
+link.click();
+}
+function saveChart(){
+
+const svg =
+document.getElementById("chart");
+
+const serializer =
+new XMLSerializer();
+
+const svgString =
+serializer.serializeToString(svg);
+
+const blob =
+new Blob(
+[svgString],
+{
+type:"image/svg+xml;charset=utf-8"
+}
+);
+
+const url =
+URL.createObjectURL(blob);
+
+const link =
+document.createElement("a");
+
+link.href = url;
+
+link.download =
+"버블그래프.svg";
+
+document.body.appendChild(link);
+
+link.click();
+
+document.body.removeChild(link);
+
+URL.revokeObjectURL(url);
+
+}
+drawChart();
+
+</script>
+
+</body>
+</html>
